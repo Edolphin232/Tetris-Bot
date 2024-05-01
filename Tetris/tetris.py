@@ -35,35 +35,39 @@ class PlayGame:
         self.piece_name = None
         
 
-    def get_pieces():
-        return 
+    def gen_new_piece(self, board):
+        if board[1][4] != 0:
+                return True
+        if len(self.bag) < 7:
+            self.bag.append(random.shuffle(pieces.copy()))
+        self.piece_name = random.choice(self.bag)
+        self.bag.remove(self.piece_name)
+        self.piece_col = 4
+        self.piece_row = 1
+        self.piece_rot = 0
+        self.piece = shapes.get(self.piece_name)
+
+        for row, col in self.piece:
+
+            board[self.piece_row + row][self.piece_col + col] = piece_nums[self.piece_name]
+
+        return False
 
     def update(self, board, action):
         if self.piece_name == None:
             if board[1][4] != 0:
                 return board, True
-                
             else:
-                if len(self.bag) == 0:
-                    self.bag = pieces.copy()
-                self.piece_name = random.choice(self.bag)
-                self.bag.remove(self.piece_name)
-                self.piece_col = 4
-                self.piece_row = 1
-                self.piece_rot = 0
-                self.piece = shapes.get(self.piece_name)
-        
-    
-        for row, col in self.piece:
-
-            board[self.piece_row + row][self.piece_col + col] = piece_nums[self.piece_name]
+                self.gen_new_piece(board)
 
         if action == 0: # Soft Drop
             board, self.piece_row, settled = self.soft_drop(board, self.piece, self.piece_row, self.piece_col, self.piece_name)
             if settled:
                 self.piece_name = None
                 board, cleared = self.clear_lines(board)
-                return board, False
+
+                
+                return board, piece_nums[self.piece_name], self.bag[:5], self.gen_new_piece(board)
         elif action == 1: # Left
             board, self.piece_col = self.left(board, self.piece, self.piece_row, self.piece_col, self.piece_name)
 
@@ -76,7 +80,7 @@ class PlayGame:
                 board, self.piece_row, settled = self.soft_drop(board, self.piece, self.piece_row, self.piece_col, self.piece_name)
             self.piece_name = None
             board, cleared = self.clear_lines(board)
-            return board, False
+            return board, piece_nums[self.piece_name], self.bag[:5], self.gen_new_piece(board)
         
         elif action == 4: # Left Spin
             board, self.piece_row, self.piece_col, self.piece_rot, self.piece = self.left_spin(
@@ -86,8 +90,7 @@ class PlayGame:
             board, self.piece_row, self.piece_col, self.piece_rot, self.piece = self.right_spin(
                 board, self.piece, self.piece_rot, self.piece_row, self.piece_col, self.piece_name)
 
-        board, cleared = self.clear_lines(board)
-        return board, False
+        return board, piece_nums[self.piece_name], self.bag[:5], False
     
     def clear_lines(self, board):
         rows, cols = board.shape
@@ -108,7 +111,7 @@ class PlayGame:
                 board[r] = board[r - 1]
             board[0] = np.zeros(cols)  # Reset the top row
             cleared += 1
-            
+
         return board, cleared
     
     # Returns true if piece can update
@@ -134,8 +137,10 @@ class PlayGame:
         if piece_name == 'O':
             return board, row, col, rotation, piece
         old_piece = [(row+r, col+c) for r,c in piece]
-        for s_r, s_c in rot_list:
+        for s_c, s_r in rot_list:
             new_piece = [(row-c+s_r, col+r+s_c) for r,c in piece]
+            print(new_piece)
+            print(rotation)
             if self.check_update(board, old_piece, new_piece, piece_name):
                 return board, row+s_r, col+s_c, (rotation-1)%4, [(-c, r) for r, c in piece]
         return board, row, col, rotation, piece
@@ -145,10 +150,12 @@ class PlayGame:
         if piece_name == 'O':
             return board, row, col, rotation, piece
         old_piece = [(row+r, col+c) for r,c in piece]
-        for s_r, s_c in rot_list:
+        for s_c, s_r in rot_list:
             new_piece = [(row+c+s_r, col-r+s_c) for r,c in piece]
+            print(new_piece)
+            print(rotation)
             if self.check_update(board, old_piece, new_piece, piece_name):
-                return board, row+s_r, col+s_c, (rotation-1)%4, [(c, -r) for r, c in piece]
+                return board, row+s_r, col+s_c, (rotation+1)%4, [(c, -r) for r, c in piece]
         return board, row, col, rotation, piece
         
     def left(self, board, piece, row, col, piece_name):
@@ -215,7 +222,7 @@ class PlayGame:
                 if state == 0:
                     return [(0, 0), (1, 0), (1, -1), (0, 2), (1, 2)]
                 if state == 1:
-                    return [(0, 0), (-1, 0), (-1, 1), (0, -2), (-1, -2)]
+                    return [(0, 0), (1, 0), (1, 1), (0, -2), (1, -2)]
                 if state == 2:
                     return [(0, 0), (-1, 0), (-1, -1), (0, 2), (-1, 2)]
                 if state == 3:

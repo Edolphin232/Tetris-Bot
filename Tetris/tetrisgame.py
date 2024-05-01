@@ -27,6 +27,7 @@ class TetrisEnv(gym.Env):
         self.piece_rot = 0
         self.piece = None
         self.piece_name = None
+        self.bag = []
 
         # Initialize Pygame
         pygame.init()
@@ -48,14 +49,14 @@ class TetrisEnv(gym.Env):
         done = False
 
 
-        self.board, done = self.game.update(self.board, action)
+        self.board, self.piece, self.bag, done = self.game.update(self.board, action)
         
 
         if self.lines_cleared == 40:
             done = True
 
-        obs = np.clip(self.board, 0, 1)
-
+        obs = np.flatten(np.clip(self.board, 0, 1))
+        
         reward -= 1
         return obs, reward, done, {}
 
