@@ -12,15 +12,17 @@ piece_col = 4
 piece_rot = 0
 piece = None
 piece_name = None
+held = None
+bag = []
 
 shapes = {
-    "T": [(0, 0), (0, -1), (0, 1), (-1, 0)],
-    "J": [(0, 0), (0, -1), (-1, -1), (0, 1)],
-    "L": [(0, 0), (0, 1), (0, -1), (-1, 1)],
-    "Z": [(0, 0), (-1, -1), (-1, 0), (0, 1)],
-    "S": [(0, 0), (0, -1), (-1, 0), (-1, 1)],
-    "I": [(0, 0), (0, -1), (0, 1), (0, 2)],
-    "O": [(0, 0), (-1, 0), (0, 1), (-1, 1)],
+    6: [(0, 0), (0, -1), (0, 1), (-1, 0)],
+    2: [(0, 0), (0, -1), (-1, -1), (0, 1)],
+    3: [(0, 0), (0, 1), (0, -1), (-1, 1)],
+    7: [(0, 0), (-1, -1), (-1, 0), (0, 1)],
+    5: [(0, 0), (0, -1), (-1, 0), (-1, 1)],
+    1: [(0, 0), (0, -1), (0, 1), (0, 2)],
+    4: [(0, 0), (-1, 0), (0, 1), (-1, 1)],
 }
 
 # Initialize Pygame
@@ -29,70 +31,167 @@ pygame.init()
 cell_size = 30
 
 # Set up the display
-screen = pygame.display.set_mode(((num_cols + 8) * cell_size + 2,num_rows * cell_size + 2))
+screen = pygame.display.set_mode(
+    ((num_cols + 12) * cell_size + 2, num_rows * cell_size + 2)
+)
 
-# Initialize your Tetris game logic
-game = PlayGame()
-
-piece = ''
-bag = []
 
 def draw_piece(cell_left, cell_top, piece, color):
     for r, c in shapes[piece]:
-        pygame.draw.rect(screen, color, ((cell_left + c*cell_size)+1, (cell_top + r*cell_size)-1, cell_size-2,cell_size-2))
+        pygame.draw.rect(
+            screen,
+            (128, 128, 128),
+            (
+                cell_left + c * cell_size - 1,
+                cell_top + r * cell_size - 1,
+                cell_size + 1,
+                cell_size + 1,
+            ),
+        )
+        pygame.draw.rect(
+            screen,
+            color,
+            (
+                (cell_left + c * cell_size),
+                (cell_top + r * cell_size),
+                cell_size - 1,
+                cell_size - 1,
+            ),
+        )
+
 
 def render():
-        # Clear the screen
-        screen.fill((128, 128, 128))  
-        
-        # Draw env elements one cell at a time
-        for i,p in enumerate(bag):
-            cell_left = ((num_cols + 3) * cell_size + 1)
-            cell_top = 3 * i * row * cell_size + 3
-            if board[row][col] == 1: # I - Light Blue 
-                draw_piece(cell_left, cell_top, p, (0, 255, 255))
-            elif board[row][col] == 2: # J - Dark Blue
-                draw_piece(cell_left, cell_top, p, (0, 0, 255))
-            elif board[row][col] == 3: # L - Orange
-                draw_piece(cell_left, cell_top, p, (255, 165, 255))
-            elif board[row][col] == 4: # O - Yellow
-                draw_piece(cell_left, cell_top, p, (255, 255, 0))
-            elif board[row][col] == 5: # S - Green
-                draw_piece(cell_left, cell_top, p, (0, 255, 0))
-            elif board[row][col] == 6: # T - Purple
-                draw_piece(cell_left, cell_top, p, (160, 32, 240))
-            elif board[row][col] == 7: # Z - Red
-                draw_piece(cell_left, cell_top, p, (255, 0, 0))
+    # Clear the screen
+    screen.fill((30, 30, 30))
+
+    cell_left = 2 * cell_size + 1
+    cell_top = 3 * cell_size + 3
+    if held == 6:  # I - Light Blue
+        draw_piece(cell_left, cell_top, held, (0, 255, 255))
+    elif held == 2:  # J - Dark Blue
+        draw_piece(cell_left, cell_top, held, (0, 0, 255))
+    elif held == 3:  # L - Orange
+        draw_piece(cell_left, cell_top, held, (255, 165, 0))
+    elif held == 7:  # O - Yellow
+        draw_piece(cell_left, cell_top, held, (255, 255, 0))
+    elif held == 5:  # S - Green
+        draw_piece(cell_left, cell_top, held, (0, 255, 0))
+    elif held == 1:  # T - Purple
+        draw_piece(cell_left, cell_top, held, (160, 32, 240))
+    elif held == 4:  # Z - Red
+        draw_piece(cell_left, cell_top, held, (255, 0, 0))
+    else:
+        pygame.draw.rect(
+            screen,
+            (0, 0, 0),
+            (cell_left, cell_top, cell_size - 1, cell_size - 1),
+        )
+
+    for i, p in enumerate(bag):
+        cell_left = (num_cols + 8) * cell_size + 1
+        cell_top = 3 * (i + 1) * cell_size + 3
+        if p == 6:  # I - Light Blue
+            draw_piece(cell_left, cell_top, p, (0, 255, 255))
+        elif p == 2:  # J - Dark Blue
+            draw_piece(cell_left, cell_top, p, (0, 0, 255))
+        elif p == 3:  # L - Orange
+            draw_piece(cell_left, cell_top, p, (255, 165, 0))
+        elif p == 7:  # O - Yellow
+            draw_piece(cell_left, cell_top, p, (255, 255, 0))
+        elif p == 5:  # S - Green
+            draw_piece(cell_left, cell_top, p, (0, 255, 0))
+        elif p == 1:  # T - Purple
+            draw_piece(cell_left, cell_top, p, (160, 32, 240))
+        elif p == 4:  # Z - Red
+            draw_piece(cell_left, cell_top, p, (255, 0, 0))
+        else:
+            pygame.draw.rect(
+                screen,
+                (0, 0, 0),
+                (cell_left, cell_top, cell_size - 1, cell_size - 1),
+            )
+
+    for row in range(num_rows):
+        for col in range(num_cols):
+            cell_left = (col + 6) * cell_size + 1
+            cell_top = row * cell_size + 3
+            pygame.draw.rect(
+                screen,
+                (128, 128, 128),
+                (cell_left - 1, cell_top, cell_size + 1, cell_size),
+            )
+            if board[row][col] == 1:  # I - Light Blue
+                pygame.draw.rect(
+                    screen,
+                    (0, 255, 255),
+                    (cell_left, cell_top, cell_size - 1, cell_size - 1),
+                )
+            elif board[row][col] == 2:  # J - Dark Blue
+                pygame.draw.rect(
+                    screen,
+                    (0, 0, 255),
+                    (cell_left, cell_top, cell_size - 1, cell_size - 1),
+                )
+            elif board[row][col] == 3:  # L - Orange
+                pygame.draw.rect(
+                    screen,
+                    (255, 165, 0),
+                    (cell_left, cell_top, cell_size - 1, cell_size - 1),
+                )
+            elif board[row][col] == 4:  # O - Yellow
+                pygame.draw.rect(
+                    screen,
+                    (255, 255, 0),
+                    (cell_left, cell_top, cell_size - 1, cell_size - 1),
+                )
+            elif board[row][col] == 5:  # S - Green
+                pygame.draw.rect(
+                    screen,
+                    (0, 255, 0),
+                    (cell_left, cell_top, cell_size - 1, cell_size - 1),
+                )
+            elif board[row][col] == 6:  # T - Purple
+                pygame.draw.rect(
+                    screen,
+                    (160, 32, 240),
+                    (cell_left, cell_top, cell_size - 1, cell_size - 1),
+                )
+            elif board[row][col] == 7:  # Z - Red
+                pygame.draw.rect(
+                    screen,
+                    (255, 0, 0),
+                    (cell_left, cell_top, cell_size - 1, cell_size - 1),
+                )
             else:
-                pygame.draw.rect(screen, (0, 0, 0), (cell_left+1, cell_top-1, cell_size-2,cell_size-2))
+                pygame.draw.rect(
+                    screen,
+                    (0, 0, 0),
+                    (cell_left, cell_top, cell_size - 1, cell_size - 1),
+                )
 
-        for row in range(num_rows):
-            for col in range(num_cols):
-                cell_left = col * cell_size + 1
-                cell_top = row * cell_size + 3
-                
-                if board[row][col] == 1: # I - Light Blue 
-                    pygame.draw.rect(screen, (0, 255, 255), (cell_left+1, cell_top-1, cell_size-2,cell_size-2))
-                elif board[row][col] == 2: # J - Dark Blue
-                    pygame.draw.rect(screen, (0, 0, 255), (cell_left+1, cell_top-1, cell_size-2,cell_size-2))
-                elif board[row][col] == 3: # L - Orange
-                    pygame.draw.rect(screen, (255, 165, 0), (cell_left+1, cell_top-1, cell_size-2,cell_size-2))
-                elif board[row][col] == 4: # O - Yellow
-                    pygame.draw.rect(screen, (255, 255, 0), (cell_left+1, cell_top-1, cell_size-2,cell_size-2))
-                elif board[row][col] == 5: # S - Green
-                    pygame.draw.rect(screen, (0, 255, 0), (cell_left+1, cell_top-1, cell_size-2,cell_size-2))
-                elif board[row][col] == 6: # T - Purple
-                    pygame.draw.rect(screen, (160, 32, 240),(cell_left+1, cell_top-1, cell_size-2,cell_size-2))
-                elif board[row][col] == 7: # Z - Red
-                    pygame.draw.rect(screen, (255, 0, 0), (cell_left+1, cell_top-1, cell_size-2,cell_size-2))
-                else:
-                    pygame.draw.rect(screen, (0, 0, 0), (cell_left+1, cell_top-1, cell_size-2,cell_size-2))
+    pygame.display.update()  # Update the display
 
-        pygame.display.update()  # Update the display
 
 # Main game loop
 running = True
+game.update(board, -1)
+t = 0
+temp = ""
 while running:
+    if t % 100 == 0:
+        board, piece, bag, held, piece_row, piece_col, piece_rot, _, done = game.update(
+            board, 0
+        )
+    t += 1
+
+    keys = pygame.key.get_pressed()
+
+    if keys[pygame.K_DOWN]:
+        board, piece, bag, held, piece_row, piece_col, piece_rot, _, done = game.update(
+            board, 0
+        )
+        pygame.time.wait(12)
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -109,8 +208,27 @@ while running:
                 action = 4
             elif event.key == pygame.K_UP:
                 action = 5
-        
-            board, piece, bag, done = game.update(board, action)
+            elif event.key == pygame.K_c:
+                action = 6
+            if event.key == pygame.K_r:
+                board = array_zeros = np.zeros((21, 10))
+                num_rows, num_cols = board.shape
+
+                game = PlayGame()
+                board, piece, bag, held, piece_row, piece_col, piece_rot, _, done = (
+                    game.update(board, -1)
+                )
+
+            else:
+                board, piece, bag, held, piece_row, piece_col, piece_rot, _, done = (
+                    game.update(board, action)
+                )
+    if not temp == piece:
+        t = 1
+    temp = piece
+    if done:
+        pygame.quit()
+        sys.exit()
 
     # Render the current game state
     screen.fill((0, 0, 0))  # Clear the screen with black
@@ -121,7 +239,6 @@ while running:
 
     # Control the game speed
     pygame.time.Clock().tick(100)
-
 
 
 # Quit Pygame
