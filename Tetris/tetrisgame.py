@@ -9,7 +9,7 @@ from tetris import PlayGame
 
 class TetrisEnv(gym.Env):
 
-    def __init__(self, board):
+    def __init__(self, board, seed=None):
         super(TetrisEnv, self).__init__()
         self.board = np.array(board)  # Maze represented as a 2D numpy array
         self.num_rows, self.num_cols = self.board.shape
@@ -19,23 +19,14 @@ class TetrisEnv(gym.Env):
         self.action_space = spaces.Discrete(9)
 
         # Observation space is grid of size:rows x columns
-        self.observation_space = spaces.Discrete(220)
+        self.observation_space = spaces.Box(
+            low=0, high=255, shape=(220,), dtype=np.int64
+        )
 
         self.lines_cleared = 0
 
-        self.game = PlayGame()
-        (
-            self.board,
-            self.piece,
-            self.bag,
-            self.held,
-            self.piece_row,
-            self.piece_col,
-            self.piece_rot,
-            self.lines_cleared,
-            self.piece_name,
-            done,
-        ) = self.game.update(self.board, -1)
+        self.game = PlayGame(board, seed)
+        self.info, _ = self.game.update(-1)
 
         # Initialize Pygame
         pygame.init()
@@ -50,27 +41,17 @@ class TetrisEnv(gym.Env):
         )
 
     def reset(self, seed=None, options=None):
-        self.game = PlayGame()
-        (
-            self.board,
-            self.piece,
-            self.bag,
-            self.held,
-            self.piece_row,
-            self.piece_col,
-            self.piece_rot,
-            self.lines_cleared,
-            self.piece_name,
-            done,
-        ) = self.game.update(self.board, -1)
+        self.game = PlayGame(np.zeros((21, 10)), seed)
+        self.info, _ = self.game.update(-1)
+        self.board = self.info["board"]
         obs = np.squeeze(np.clip(self.board, 0, 1).reshape(-1, 1))
         other_obs = [
-            self.piece_name,
-            self.held,
-            self.piece_row,
-            self.piece_col,
-            self.piece_rot,
-        ] + self.bag
+            self.info["piece_num"],
+            self.info["held"],
+            self.info["row"],
+            self.info["col"],
+            self.info["rotation"],
+        ] + self.info["bag"][:5]
         obs = np.append(obs, other_obs)
         obs = obs.astype(np.int64)
         return obs, {}
@@ -82,19 +63,10 @@ class TetrisEnv(gym.Env):
             reward -= 1
         else:
             reward -= 2
+
         temp_lines = self.lines_cleared
-        (
-            self.board,
-            self.piece,
-            self.bag,
-            self.held,
-            self.piece_row,
-            self.piece_col,
-            self.piece_rot,
-            self.lines_cleared,
-            self.piece_name,
-            done,
-        ) = self.game.update(self.board, action)
+
+        self.info, done = self.game.update(action)
 
         reward += 10 * self.lines_cleared - temp_lines
 
@@ -102,15 +74,15 @@ class TetrisEnv(gym.Env):
             reward += 1000
             done = True
 
+        self.board = self.info["board"]
         obs = np.squeeze(np.clip(self.board, 0, 1).reshape(-1, 1))
         other_obs = [
-            self.piece_name,
-            self.held,
-            self.piece_row,
-            self.piece_col,
-            self.piece_rot,
-        ] + self.bag
-        print(other_obs)
+            self.info["piece_num"],
+            self.info["held"],
+            self.info["row"],
+            self.info["col"],
+            self.info["rotation"],
+        ] + self.info["bag"][:5]
         obs = np.append(obs, other_obs)
         obs = obs.astype(np.int64)
 
@@ -152,7 +124,7 @@ class TetrisEnv(gym.Env):
     def render(self):
         # Clear the self.screen
         self.screen.fill((30, 30, 30))
-
+        self.held = self.info["held"]
         cell_left = 2 * self.cell_size + 1
         cell_top = 3 * self.cell_size + 3
         if self.held == 1:  # I - Light Blue
@@ -176,7 +148,7 @@ class TetrisEnv(gym.Env):
                 (cell_left, cell_top, self.cell_size - 1, self.cell_size - 1),
             )
 
-        for i, p in enumerate(self.bag):
+        for i, p in enumerate(self.info["bag"][:5]):
             cell_left = (self.num_cols + 8) * self.cell_size + 1
             cell_top = 3 * (i + 1) * self.cell_size + 3
             if p == 1:  # I - Light Blue

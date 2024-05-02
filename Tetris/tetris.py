@@ -15,9 +15,11 @@ pieces = [1, 2, 3, 4, 5, 6, 7]
 
 
 class PlayGame:
-    def __init__(self):
+    def __init__(self, board, seed):
+        random.seed(seed)
+        np.random.seed(seed)
         self.info = {
-            "board": np.zeros((21, 10)),
+            "board": board,
             "bag": [],
             "piece": [],
             "row": 1,
