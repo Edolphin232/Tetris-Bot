@@ -63,23 +63,23 @@ def draw_piece(cell_left, cell_top, piece, color):
 def render():
     # Clear the screen
     screen.fill((30, 30, 30))
-
+    p = held
     cell_left = 2 * cell_size + 1
     cell_top = 3 * cell_size + 3
-    if held == 6:  # I - Light Blue
-        draw_piece(cell_left, cell_top, held, (0, 255, 255))
-    elif held == 2:  # J - Dark Blue
-        draw_piece(cell_left, cell_top, held, (0, 0, 255))
-    elif held == 3:  # L - Orange
-        draw_piece(cell_left, cell_top, held, (255, 165, 0))
-    elif held == 7:  # O - Yellow
-        draw_piece(cell_left, cell_top, held, (255, 255, 0))
-    elif held == 5:  # S - Green
-        draw_piece(cell_left, cell_top, held, (0, 255, 0))
-    elif held == 1:  # T - Purple
-        draw_piece(cell_left, cell_top, held, (160, 32, 240))
-    elif held == 4:  # Z - Red
-        draw_piece(cell_left, cell_top, held, (255, 0, 0))
+    if p == 1:  # I - Light Blue
+        draw_piece(cell_left, cell_top, p, (0, 255, 255))
+    elif p == 2:  # J - Dark Blue
+        draw_piece(cell_left, cell_top, p, (0, 0, 255))
+    elif p == 3:  # L - Orange
+        draw_piece(cell_left, cell_top, p, (255, 165, 0))
+    elif p == 4:  # O - Yellow
+        draw_piece(cell_left, cell_top, p, (255, 255, 0))
+    elif p == 5:  # S - Green
+        draw_piece(cell_left, cell_top, p, (0, 255, 0))
+    elif p == 6:  # T - Purple
+        draw_piece(cell_left, cell_top, p, (160, 32, 240))
+    elif p == 7:  # Z - Red
+        draw_piece(cell_left, cell_top, p, (255, 0, 0))
     else:
         pygame.draw.rect(
             screen,
@@ -87,22 +87,22 @@ def render():
             (cell_left, cell_top, cell_size - 1, cell_size - 1),
         )
 
-    for i, p in enumerate(bag):
+    for i, p in enumerate(bag[:5]):
         cell_left = (num_cols + 8) * cell_size + 1
         cell_top = 3 * (i + 1) * cell_size + 3
-        if p == 6:  # I - Light Blue
+        if p == 1:  # I - Light Blue
             draw_piece(cell_left, cell_top, p, (0, 255, 255))
         elif p == 2:  # J - Dark Blue
             draw_piece(cell_left, cell_top, p, (0, 0, 255))
         elif p == 3:  # L - Orange
             draw_piece(cell_left, cell_top, p, (255, 165, 0))
-        elif p == 7:  # O - Yellow
+        elif p == 4:  # O - Yellow
             draw_piece(cell_left, cell_top, p, (255, 255, 0))
         elif p == 5:  # S - Green
             draw_piece(cell_left, cell_top, p, (0, 255, 0))
-        elif p == 1:  # T - Purple
+        elif p == 6:  # T - Purple
             draw_piece(cell_left, cell_top, p, (160, 32, 240))
-        elif p == 4:  # Z - Red
+        elif p == 7:  # Z - Red
             draw_piece(cell_left, cell_top, p, (255, 0, 0))
         else:
             pygame.draw.rect(
@@ -174,22 +174,18 @@ def render():
 
 # Main game loop
 running = True
-game.update(board, -1)
+game.update(-1)
 t = 0
 temp = ""
 while running:
     if t % 100 == 0:
-        board, piece, bag, held, piece_row, piece_col, piece_rot, _, done = game.update(
-            board, 0
-        )
+        info, done = game.update(0)
     t += 1
 
     keys = pygame.key.get_pressed()
 
     if keys[pygame.K_DOWN]:
-        board, piece, bag, held, piece_row, piece_col, piece_rot, _, done = game.update(
-            board, 0
-        )
+        info, done = game.update(0)
         pygame.time.wait(12)
 
     for event in pygame.event.get():
@@ -215,14 +211,16 @@ while running:
                 num_rows, num_cols = board.shape
 
                 game = PlayGame()
-                board, piece, bag, held, piece_row, piece_col, piece_rot, _, done = (
-                    game.update(board, -1)
-                )
+                info, done = game.update(-1)
 
             else:
-                board, piece, bag, held, piece_row, piece_col, piece_rot, _, done = (
-                    game.update(board, action)
-                )
+                info, done = game.update(action)
+
+    piece = info["piece_num"]
+    board = info["board"]
+    bag = info["bag"]
+    held = info["held"]
+
     if not temp == piece:
         t = 1
     temp = piece

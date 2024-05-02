@@ -16,188 +16,187 @@ pieces = [1, 2, 3, 4, 5, 6, 7]
 
 class PlayGame:
     def __init__(self):
-        self.bag = []
+        self.info = {
+            "board": np.zeros((21, 10)),
+            "bag": [],
+            "piece": [],
+            "row": 1,
+            "col": 4,
+            "rotation": 0,
+            "piece_num": 0,
+            "held": 0,
+            "can_hold": True,
+            "lines_cleared": 0,
+        }
         new_pieces = pieces.copy()
         random.shuffle(new_pieces)
-        self.bag += new_pieces
-        self.piece_row = 1
-        self.piece_col = 4
-        self.piece_rot = 0
-        self.piece_name = self.bag[0]
-        self.bag.remove(self.piece_name)
-        self.piece = shapes.get(self.piece_name)
-        self.held = 0
-        self.can_hold = True
-        self.cleared = 0
+        self.info["bag"] += new_pieces
+        self.info["piece_num"] = self.info["bag"][0]
+        self.info["piece"] = shapes.get(self.info["bag"][0])
+        self.info["bag"].remove(self.info["bag"][0])
 
-    def gen_new_piece(self, board):
-        if board[1][4] != 0:
+    def gen_new_piece(self):
+        if self.info["board"][1][4] != 0:
             return True
-        if len(self.bag) < 7:
+        if len(self.info["bag"]) < 7:
             new_pieces = pieces.copy()
             random.shuffle(new_pieces)
-            self.bag += new_pieces
-        self.piece_name = self.bag[0]
-        self.bag.remove(self.piece_name)
-        self.piece_col = 4
-        self.piece_row = 1
-        self.piece_rot = 0
-        self.piece = shapes.get(self.piece_name)
+            self.info["bag"] += new_pieces
+        self.info["piece_num"] = self.info["bag"][0]
+        self.info["piece"] = shapes.get(self.info["bag"][0])
+        self.info["bag"].remove(self.info["bag"][0])
+        self.info["row"] = 1
+        self.info["col"] = 4
+        self.info["rotation"] = 0
+        self.info["can_hold"] = True
 
-        for row, col in self.piece:
+        for row, col in self.info["piece"]:
 
-            board[self.piece_row + row][self.piece_col + col] = self.piece_name
+            self.info["board"][self.info["row"] + row][self.info["col"] + col] = (
+                self.info["piece_num"]
+            )
 
         return False
 
-    def update(self, board, action):
-        if self.piece_name == 0:
-            if board[1][4] != 0:
-                return (
-                    board,
-                    None,
-                    None,
-                    self.held,
-                    self.piece_col,
-                    self.piece_row,
-                    self.piece_rot,
-                    self.cleared,
-                    self.piece_name,
-                    True,
-                )
+    def update(self, action):
+        if self.info["piece_num"] == 0:
+            if self.info["board"][1][4] != 0:
+                return (self.info, True)
             else:
-                self.gen_new_piece(board)
-                self.can_hold = True
+                self.gen_new_piece()
+                self.info["can_hold"] = True
 
         if action == 0:  # Soft Drop
-            board, self.piece_row, settled = self.soft_drop(
-                board, self.piece, self.piece_row, self.piece_col, self.piece_name
+            self.info["board"], self.info["row"], settled = self.soft_drop(
+                self.info["board"],
+                self.info["piece"],
+                self.info["row"],
+                self.info["col"],
+                self.info["piece_num"],
             )
             if settled:
-                self.piece_name = 0
-                board = self.clear_lines(board)
-                self.can_hold = True
-                return (
-                    board,
-                    None,
-                    self.bag[1:6],
-                    self.held,
-                    self.piece_col,
-                    self.piece_row,
-                    self.piece_rot,
-                    self.cleared,
-                    self.piece_name,
-                    self.gen_new_piece(board),
-                )
+                self.info["piece_num"] = 0
+                self.info["board"] = self.clear_lines(self.info["board"])
+                self.info["can_hold"] = True
+                return (self.info, self.gen_new_piece())
         elif action == 1:  # Left
-            board, self.piece_col = self.left(
-                board, self.piece, self.piece_row, self.piece_col, self.piece_name
+            self.info["board"], self.info["col"] = self.left(
+                self.info["board"],
+                self.info["piece"],
+                self.info["row"],
+                self.info["col"],
+                self.info["piece_num"],
             )
 
         elif action == 2:  # Right
-            board, self.piece_col = self.right(
-                board, self.piece, self.piece_row, self.piece_col, self.piece_name
+            self.info["board"], self.info["col"] = self.right(
+                self.info["board"],
+                self.info["piece"],
+                self.info["row"],
+                self.info["col"],
+                self.info["piece_num"],
             )
 
         elif action == 3:  # Hard Drop
             settled = False
             while not settled:
-                board, self.piece_row, settled = self.soft_drop(
-                    board, self.piece, self.piece_row, self.piece_col, self.piece_name
+                self.info["board"], self.info["row"], settled = self.soft_drop(
+                    self.info["board"],
+                    self.info["piece"],
+                    self.info["row"],
+                    self.info["col"],
+                    self.info["piece_num"],
                 )
-            self.piece_name = 0
-            board = self.clear_lines(board)
-            self.can_hold = True
-            return (
-                board,
-                None,
-                self.bag[1:6],
-                self.held,
-                self.piece_col,
-                self.piece_row,
-                self.piece_rot,
-                self.cleared,
-                self.piece_name,
-                self.gen_new_piece(board),
-            )
+            self.info["piece_num"] = 0
+            self.info["board"] = self.clear_lines(self.info["board"])
+            self.info["can_hold"] = True
+            return (self.info, self.gen_new_piece())
 
         elif action == 4:  # Left Spin
-            board, self.piece_row, self.piece_col, self.piece_rot, self.piece = (
-                self.left_spin(
-                    board,
-                    self.piece,
-                    self.piece_rot,
-                    self.piece_row,
-                    self.piece_col,
-                    self.piece_name,
-                )
+            (
+                self.info["board"],
+                self.info["row"],
+                self.info["col"],
+                self.info["rotation"],
+                self.info["piece"],
+            ) = self.left_spin(
+                self.info["board"],
+                self.info["piece"],
+                self.info["rotation"],
+                self.info["row"],
+                self.info["col"],
+                self.info["piece_num"],
             )
 
         elif action == 5:  # Right Spin
-            board, self.piece_row, self.piece_col, self.piece_rot, self.piece = (
-                self.right_spin(
-                    board,
-                    self.piece,
-                    self.piece_rot,
-                    self.piece_row,
-                    self.piece_col,
-                    self.piece_name,
-                )
+            (
+                self.info["board"],
+                self.info["row"],
+                self.info["col"],
+                self.info["rotation"],
+                self.info["piece"],
+            ) = self.right_spin(
+                self.info["board"],
+                self.info["piece"],
+                self.info["rotation"],
+                self.info["row"],
+                self.info["col"],
+                self.info["piece_num"],
             )
 
         elif action == 6:  # Hold
-            if self.can_hold:
-                if self.held == 0:
-                    for r, c in self.piece:
-                        board[self.piece_row + r][self.piece_col + c] = 0
+            if self.info["can_hold"]:
+                if self.info["held"] == 0:
+                    for r, c in self.info["piece"]:
+                        self.info["board"][self.info["row"] + r][
+                            self.info["col"] + c
+                        ] = 0
 
-                    self.held = self.piece_name
-                    self.gen_new_piece(board)
+                    self.info["held"] = self.info["piece_num"]
+                    self.gen_new_piece()
                 else:
-                    for r, c in self.piece:
-                        board[self.piece_row + r][self.piece_col + c] = 0
-                    temp = self.held
-                    self.held = self.piece_name
-                    self.piece_name = temp
-                    self.piece_col = 4
-                    self.piece_row = 1
-                    self.piece_rot = 0
-                    self.piece = shapes.get(self.piece_name)
-                    print(self.piece_name)
+                    for r, c in self.info["piece"]:
+                        self.info["board"][self.info["row"] + r][
+                            self.info["col"] + c
+                        ] = 0
+                    temp = self.info["held"]
+                    self.info["held"] = self.info["piece_num"]
+                    self.info["piece_num"] = temp
+                    self.info["col"] = 4
+                    self.info["row"] = 1
+                    self.info["rotation"] = 0
+                    self.info["piece"] = shapes.get(self.info["piece_num"])
 
-                    for row, col in self.piece:
+                    for row, col in self.info["piece"]:
 
-                        board[self.piece_row + row][
-                            self.piece_col + col
-                        ] = self.piece_name
+                        self.info["board"][self.info["row"] + row][
+                            self.info["col"] + col
+                        ] = self.info["piece_num"]
 
-                self.can_hold = False
+                self.info["can_hold"] = False
         elif action == 7:  # Hold Left
-            temp_col = self.piece_col + 1
-            while temp_col != self.piece_col:
-                temp_col = self.piece_col
-                board, self.piece_col = self.left(
-                    board, self.piece, self.piece_row, self.piece_col, self.piece_name
+            temp_col = self.info["col"] + 1
+            while temp_col != self.info["col"]:
+                temp_col = self.info["col"]
+                self.info["board"], self.info["col"] = self.left(
+                    self.info["board"],
+                    self.info["piece"],
+                    self.info["row"],
+                    self.info["col"],
+                    self.info["piece_num"],
                 )
         elif action == 8:  # Hold Right
-            temp_col = self.piece_col - 1
-            while temp_col != self.piece_col:
-                temp_col = self.piece_col
-                board, self.piece_col = self.right(
-                    board, self.piece, self.piece_row, self.piece_col, self.piece_name
+            temp_col = self.info["col"] - 1
+            while temp_col != self.info["col"]:
+                temp_col = self.info["col"]
+                self.info["board"], self.info["col"] = self.right(
+                    self.info["board"],
+                    self.info["piece"],
+                    self.info["row"],
+                    self.info["col"],
+                    self.info["piece_num"],
                 )
-        return (
-            board,
-            self.piece_name,
-            self.bag[:5],
-            self.held,
-            self.piece_col,
-            self.piece_row,
-            self.piece_rot,
-            self.cleared,
-            self.piece_name,
-            False,
-        )
+        return (self.info, False)
 
     def clear_lines(self, board):
         rows, cols = 21, 10
@@ -216,7 +215,7 @@ class PlayGame:
             for r in reversed(range(0, row + 1)):
                 board[r] = board[r - 1]
             board[0] = np.zeros(cols)  # Reset the top row
-            self.cleared += 1
+            self.info["lines_cleared"] += 1
 
         return board
 
